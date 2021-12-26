@@ -1,0 +1,6 @@
+.monthInput{
+    box-shadow: 3px 3px 6px #b8b9be, -3px -3px 6px ;
+    -webkit-box-shadow: 3px 3px 6px #b8b9be, -3px -3px 6px #fff;
+    -moz-box-shadow: 3px 3px 6px #b8b9be, -3px -3px 6px #fff;
+    -ms-box-shadow: 3px 3px 6px #b8b9be, -3px -3px 6px #fff;
+}

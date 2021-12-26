@@ -1,0 +1,125 @@
+version: '3'
+services:
+    # postgres container
+    postgresql:
+        # will pull the image from docker-hub when ran for the first time & will store in the local
+        # but from next ownwards it 'll pull from local
+        image: postgres:13
+        # name of our container
+        container_name: postgres
+        # if automatically stopped due to some reasons, it will try restarting it again
+        restart: always
+        # environment variables
+        environment:
+            POSTGRES_DB: "${POSTGRES_DB}"
+            POSTGRES_USER: "${POSTGRES_USER}"
+            POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+        # the container will fetch all the required variables from the environment file
+        env_file:
+            - ./.env
+        # mounting volume means this directory's data will be in sync with container's same directory
+        # here we are mounting the data directory of container with our local directory to persist data,
+        # even after the container is stopped. If it's not mounted the data will be lost
+        volumes:
+            - ./postgres_docker_data:/var/lib/postgresql/data/
+        # connecting ports, the left one is the host port and the right one is container's port
+        ports:
+            - "5432:5432"
+    web:
+        # will build the image from the docker file in the same directory
+        build: .
+        # our container name
+        container_name: django
+        image: lotuspetal-backend_web:latest
+        # if automatically stopped due to some reasons, it will try restarting it again
+        restart: always
+        # the command will be ran after the container is built
+        # command: python3 manage.py runserver 0.0.0.0:8000
+        command: gunicorn _lotus_petal.wsgi:application --bind 0.0.0.0:8000 --workers=4
+        # mounting volumes 
+        volumes:
+            - .:/home/app/web
+        # ports:
+        #     - "8000:8000"
+        expose:
+            - 8000
+        # this container will be built only after the postgres container is built
+        depends_on:
+            - postgresql
+
+    
+    nginx:
+        image: nginx:1.14.2-alpine
+        container_name: nginx
+        restart: always
+        # mounting the nginx file and the static files (so that nginx can serve it itself)
+#        volumes:
+#            - ./nginx:/etc/nginx/conf.d
+#            - ./static:/home/app/web/static
+#            - ./data/certbot/conf:/etc/letsencrypt
+#            - ./data/certbot/www:/var/www/certbot
+        volumes:
+            - ./static:/home/app/web/static
+            - ./nginx:/etc/nginx/conf.d
+
+            - ./dhparam:/etc/nginx/dhparam
+            - ./certbot/conf:/etc/nginx/ssl
+            - ./certbot/data:/usr/share/nginx/html/letsencrypt
+
+        ports:
+            - 80:80
+            - 443:443
+#       depends_on:
+#            - web
+    #new container for SSL
+    certbot:
+        image: certbot/certbot:latest
+        command: certonly --webroot --webroot-path=/usr/share/nginx/html/letsencrypt --email nadeem.ali@stackfusion.io --agree-tos --no-eff-email -d test-studywell.lotuspetalfoundation.org
+        volumes:
+            - ./certbot/conf:/etc/letsencrypt
+            - ./certbot/logs:/var/log/letsencrypt
+            - ./certbot/data:/usr/share/nginx/html/letsencrypt
+
+#        entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+    rabbitmq:
+        image: rabbitmq:3.8.3
+        build: rabbitmq
+        container_name: rabbitmq
+        restart: always
+        command: rabbitmq-server
+        environment:
+            RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER}"
+            RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD}"
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+            - "15675:15675"
+            - "15692:15692"
+            - "1883:1883"
+            - "8883:8883"
+    celery-beat:
+        image: lotuspetal-backend_web:latest
+        restart: always
+        container_name: celery_beat
+        volumes:
+            - .:/home/app/web
+        depends_on:
+            - rabbitmq
+            - web
+        command: bash -c "celery -A _lotus_petal beat --loglevel=info"
+    celery-worker:
+        image: lotuspetal-backend_web:latest
+        restart: always
+        container_name: celery_worker
+        volumes:
+            - .:/home/app/web
+        depends_on:
+            - rabbitmq
+            - web
+        command: bash -c "celery -A _lotus_petal worker --loglevel=info"
+
+
+volumes:
+    postgres_docker_data:
+    static:
