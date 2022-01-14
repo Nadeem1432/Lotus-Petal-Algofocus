@@ -1,0 +1,6 @@
+TODO: 
+
+1. SSO
+2. Store dashboard database (first discuss with anil)
+3. API to update the attendance manually
+4. 

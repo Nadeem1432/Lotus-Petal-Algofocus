@@ -1,0 +1,29 @@
+/postgres_docker_data
+/staticfiles
+/test_data
+
+/Reports
+/nginx
+/certbot
+/dhparam
+
+**/__pycache__/
+**/migrations/*
+!**/migrations/__init__.py
+
+
+api.log
+celerybeat-schedule
+
+# *.pyc
+# *.py[cod]
+# .*
+# !.github
+# !.gitignore
+# !.nvmrc
+# !.pylintrc
+# *.log
+# *.pot
+# *__pycache__*
+# *\.egg*
+
